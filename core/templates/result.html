@@ -1,0 +1,22 @@
+<!-- result.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comparison Result</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5 text-center">
+        <h2>📊 Comparison Result</h2>
+        <p>✅ Matched Parcels: {{ matched_count }}</p>
+        <p>❌ Unmatched Parcels: {{ unmatched_count }}</p>
+
+        <a href="{% url 'download_matched' %}" class="btn btn-success m-2">📥 Download Matched Excel</a>
+        <a href="{% url 'download_unmatched' %}" class="btn btn-danger m-2">📥 Download Unmatched Excel</a>
+
+        <div class="mt-4">
+            <a href="/" class="btn btn-secondary">🏠 Go to Home</a>
+        </div>
+    </div>
+</body>
+</html>
