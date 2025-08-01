@@ -1,12 +1,17 @@
 {
   "builds": [
     {
-      "src": "manage.py",
-      "use": "@vercel/python",
-      "config": { "maxLambdaSize": "250mb" }
+      "src": "return_mgm/wsgi.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "manage.py" }
-  ]
+    {
+      "src": "/(.*)",
+      "dest": "return_mgm/wsgi.py"
+    }
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "return_mgm.settings"
+  }
 }
