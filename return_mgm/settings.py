@@ -12,26 +12,27 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-development-key
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['true', '1', 'yes']
 
-# Allowed hosts configuration
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
-ALLOWED_HOSTS = [
-    'return-management-system-9hw30408j-vanshikas.vercel.app',
-    '.vercel.app',
-    'localhost',
-    '127.0.0.1',
-]
+# Allowed hosts configuration - SINGLE DEFINITION
+ALLOWED_HOSTS = []
 
-# Vercel environment થી automatically add કરો
 if os.getenv('VERCEL'):
-    ALLOWED_HOSTS = ['*']  # Vercel mate temporarily
-else:
+    # Vercel environment - allow all Vercel domains
+    ALLOWED_HOSTS = ['*.vercel.app', '.vercel.app']
+elif DEBUG:
+    # Development environment
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-# Add Vercel domains if in production
-if not DEBUG:
-    ALLOWED_HOSTS.extend([
-        '.vercel.app',
-        'return-management-system.vercel.app',  # તમારું actual domain
-    ])
+else:
+    # Production environment - add your specific domains
+    ALLOWED_HOSTS = [
+        'your-domain.com',  # Replace with your actual domain
+        '*.vercel.app',
+        '.vercel.app'
+    ]
+
+# Add custom hosts from environment variable
+custom_hosts = os.getenv('ALLOWED_HOSTS', '')
+if custom_hosts:
+    ALLOWED_HOSTS.extend([host.strip() for host in custom_hosts.split(',') if host.strip()])
 
 # Application definition
 INSTALLED_APPS = [
@@ -55,7 +56,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'return_mgm.urls'  # તમારા project નું નામ
+ROOT_URLCONF = 'return_mgm.urls'
 
 TEMPLATES = [
     {
@@ -73,7 +74,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'return_mgm.wsgi.application'  # તમારા project નું નામ
+WSGI_APPLICATION = 'return_mgm.wsgi.application'
 
 # Database Configuration - Smart switching
 def get_database_config():
