@@ -7,3 +7,5 @@ class UploadedFile(models.Model):
 class ScannedAWB(models.Model):
     awb_number = models.CharField(max_length=100)
     scanned_at = models.DateTimeField(auto_now_add=True)
+    
+    
