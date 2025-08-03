@@ -13,8 +13,19 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-development-key
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['true', '1', 'yes']
 
 # Allowed hosts configuration
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1', 
+    '.vercel.app',
+    'return-management-system.vercel.app',
+]
 
+# Vercel environment થી automatically add કરો
+if os.environ.get('VERCEL_URL'):
+    ALLOWED_HOSTS.append(os.environ.get('VERCEL_URL'))
+    
+if os.environ.get('VERCEL_BRANCH_URL'):
+    ALLOWED_HOSTS.append(os.environ.get('VERCEL_BRANCH_URL'))
 # Add Vercel domains if in production
 if not DEBUG:
     ALLOWED_HOSTS.extend([
