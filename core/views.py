@@ -95,15 +95,6 @@ def get_latest_uploaded_file():
     latest_file = max(files, key=os.path.getctime)
     return latest_file
 
-import re  # 🎯 NEW: For regex-based AWB extraction from Tracking Link
-
-import os
-import pandas as pd
-import re
-from django.conf import settings
-from django.shortcuts import render
-from django.http import HttpResponse
-
 # 🎯 AWB Extractor from any tracking link
 def extract_awb_from_url(url):
     if not isinstance(url, str):
@@ -196,3 +187,93 @@ def download_unmatched(request):
     response['Content-Disposition'] = 'attachment; filename=unmatched.xlsx'
     unmatched.to_excel(response, index=False, engine='openpyxl')
     return response
+
+def google_login(request):
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                    "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI", "https://return-management-system.vercel.app/google/redirect/")],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token"
+                }
+            },
+            scopes=os.getenv("GOOGLE_SCOPES", "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile").split()
+        )
+
+        flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://return-management-system.vercel.app/google/redirect/")
+        auth_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent'
+        )
+
+        request.session['state'] = state
+        return redirect(auth_url)
+    except Exception as e:
+        # Debug માટે error show કરો
+        return render(request, 'error.html', {'error': str(e)})
+
+def google_redirect(request):
+    try:
+        state = request.session.get('state')
+
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                    "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI", "https://return-management-system.vercel.app/google/redirect/")],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token"
+                }
+            },
+            scopes=os.getenv("GOOGLE_SCOPES", "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile").split(),
+            state=state
+        )
+        flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://return-management-system.vercel.app/google/redirect/")
+
+        authorization_response = request.build_absolute_uri()
+        flow.fetch_token(authorization_response=authorization_response)
+
+        credentials = flow.credentials
+        request.session['credentials'] = {
+            'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes
+        }
+
+        return redirect('home')
+    except Exception as e:
+        # Debug માટે error show કરો
+        return render(request, 'error.html', {'error': str(e)})
+
+def drive_list(request):
+    try:
+        from google.oauth2.credentials import Credentials
+
+        creds_data = request.session.get('credentials')
+        if not creds_data:
+            return redirect('google_login')
+
+        creds = Credentials(
+            token=creds_data['token'],
+            refresh_token=creds_data['refresh_token'],
+            token_uri=creds_data['token_uri'],
+            client_id=creds_data['client_id'],
+            client_secret=creds_data['client_secret'],
+            scopes=creds_data['scopes'],
+        )
+
+        headers = {"Authorization": f"Bearer {creds.token}"}
+        response = requests.get("https://www.googleapis.com/drive/v3/files", headers=headers)
+        files = response.json().get("files", [])
+
+        return render(request, "drive_files.html", {"files": files})
+    except Exception as e:
+        return render(request, 'error.html', {'error': str(e)})

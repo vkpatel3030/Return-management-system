@@ -10,8 +10,5 @@
       "src": "/(.*)",
       "dest": "return_mgm/wsgi.py"
     }
-  ],
-  "env": {
-    "DJANGO_SETTINGS_MODULE": "return_mgm.settings"
-  }
+  ]
 }
