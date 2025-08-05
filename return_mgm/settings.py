@@ -52,11 +52,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'return_mgm.wsgi.application'
 
+tmp_db_path = '/tmp/db.sqlite3'
+
+if not os.path.exists(tmp_db_path):
+    open(tmp_db_path, 'a').close()
 # Database - SQLite only
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/temp/db.sqlite3',
+        'NAME': tmp_db_path,
     }
 }
 
