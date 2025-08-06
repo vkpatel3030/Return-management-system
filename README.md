@@ -70,7 +70,9 @@ A Django-based web application for managing parcel returns in logistics and e-co
    - `GOOGLE_SCOPES`
    - `SECRET_KEY`
 
-3. **Deploy** - Vercel will automatically use the `build_files.sh` script
+3. **Deploy** - Vercel will automatically handle the build process
+
+**Note**: The deployment now uses a simplified approach without custom build scripts. Static files are served by WhiteNoise at runtime.
 
 ## Usage
 
