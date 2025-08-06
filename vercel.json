@@ -23,10 +23,5 @@
       "src": "/(.*)",
       "dest": "return_mgm/wsgi.py"
     }
-  ],
-  "functions": {
-    "return_mgm/wsgi.py": {
-      "includeFiles": "static/**"
-    }
-  }
+  ]
 }
