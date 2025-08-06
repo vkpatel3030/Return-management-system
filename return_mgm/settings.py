@@ -59,7 +59,11 @@ if not os.path.exists(tmp_db_path):
     open(tmp_db_path, 'a').close()
 # Database - SQLite only
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv("DATABASE_URL"))
+    'default': dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Password validation
