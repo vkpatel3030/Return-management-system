@@ -1,8 +1,4 @@
 from django.shortcuts import render
-
-# Create your views here.
-# views.py
-
 import os
 from django.shortcuts import redirect, render
 from dotenv import load_dotenv

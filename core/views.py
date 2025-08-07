@@ -10,6 +10,7 @@ from auth_google.decorators import google_login_required
 
 
 
+
 uploaded_data_df = pd.DataFrame()
 scanned_awb_list = []
 
