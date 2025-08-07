@@ -1,11 +1,11 @@
 {
   "builds": [
     {
-      "src": "manage.py",
+      "src": "app.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "50mb",
-        "includeFiles": ["staticfiles_build/**", "templates/**"]
+        "includeFiles": ["staticfiles_build/**", "templates/**", "return_mgm/**"]
       }
     }
   ],
@@ -16,7 +16,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "manage.py"
+      "dest": "app.py"
     }
   ],
   "buildCommand": "./build_files.sh"
