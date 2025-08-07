@@ -1,9 +1,7 @@
 #!/bin/bash
 
-echo "🔧 Running build steps..."
+# Apply database migrations (if needed)
+python manage.py migrate
 
-
-# Run database migrations
-python3 manage.py migrate
-
-echo "✅ Build complete!"
+# Collect static files
+python manage.py collectstatic --noinput
