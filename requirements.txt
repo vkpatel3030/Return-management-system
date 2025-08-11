@@ -11,3 +11,5 @@ google-auth-oauthlib
 oauthlib
 dj-database-url
 psycopg2-binary
+supabase==2.18.0
+
