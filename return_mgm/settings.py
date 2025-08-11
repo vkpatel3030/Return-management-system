@@ -142,3 +142,12 @@ LOGGING = {
         },
     },
 }
+
+# Supabase Storage Settings
+
+from supabase import create_client
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://YOUR_PROJECT_URL.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "YOUR_SERVICE_ROLE_KEY")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)

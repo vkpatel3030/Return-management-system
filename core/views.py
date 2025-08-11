@@ -7,7 +7,7 @@ from .models import UploadedFile
 from django.core.files.storage import FileSystemStorage
 import re
 from auth_google.decorators import google_login_required
-
+from supabase import create_client
 
 
 
@@ -18,32 +18,45 @@ scanned_awb_list = []
 def home(request):
     return render(request, 'home.html')
 
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
+
+uploaded_data_df = pd.DataFrame()
+
 def upload_file(request):
     global uploaded_data_df
     if request.method == 'POST' and request.FILES.get('file'):
         file = request.FILES['file']
         UploadedFile.objects.all().delete()  # Clear old files
-        fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'uploads'))
-        if not os.path.exists(fs.location):
-            os.makedirs(fs.location)
 
-        filename = fs.save(file.name, file)
-        file_path = fs.path(filename)
-
-        ext = os.path.splitext(filename)[1]
+        # Read file into DataFrame without saving locally
+        ext = os.path.splitext(file.name)[1].lower()
         if ext == '.csv':
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file)
         else:
-            df = pd.read_excel(file_path, engine='openpyxl')  # 👈 Important for .xlsx
+            df = pd.read_excel(file, engine='openpyxl')
 
         uploaded_data_df = df.copy()
 
-        # Save to Excel for later comparison
-        save_path = os.path.join(settings.MEDIA_ROOT, 'uploaded_data.xlsx')
-        df.to_excel(save_path, index=False)
+        # Save Excel in-memory
+        from io import BytesIO
+        excel_buffer = BytesIO()
+        df.to_excel(excel_buffer, index=False)
+        excel_buffer.seek(0)
 
-        # Save reference to model
-        UploadedFile.objects.create(file=file)
+        # Upload to Supabase storage bucket
+        bucket_name = "uploads"  # Supabase bucket name
+        file_path = f"uploaded/{file.name}"
+        supabase.storage.from_(bucket_name).upload(
+            file_path,
+            excel_buffer.read(),
+            {"content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+        )
+
+        # Save reference to DB
+        UploadedFile.objects.create(file_name=file.name)
 
         return render(request, 'upload.html', {'data': df.to_dict(orient='records')})
 
