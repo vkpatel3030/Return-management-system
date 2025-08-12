@@ -143,11 +143,19 @@ LOGGING = {
     },
 }
 
-# Supabase Storage Settings
 
-from supabase import create_client
+# ✅ Safe Supabase initialization
+from supabase import create_client, Client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://YOUR_PROJECT_URL.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "YOUR_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client | None = None
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase client initialized")
+    except Exception as e:
+        print(f"⚠️ Supabase client initialization failed: {e}")
+else:
+    print("⚠️ Supabase environment variables not set. Supabase client not initialized.")x
