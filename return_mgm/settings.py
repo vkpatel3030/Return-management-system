@@ -158,4 +158,4 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception as e:
         print(f"⚠️ Supabase client initialization failed: {e}")
 else:
-    print("⚠️ Supabase environment variables not set. Supabase client not initialized.")x
+    print("⚠️ Supabase environment variables not set. Supabase client not initialized.")
