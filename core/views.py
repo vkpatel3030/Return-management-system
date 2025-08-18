@@ -7,7 +7,9 @@ from .models import UploadedFile
 from django.core.files.storage import FileSystemStorage
 import re
 from auth_google.decorators import google_login_required
-from supabase import create_client
+import uuid
+import time
+from io import BytesIO
 
 
 
@@ -18,20 +20,19 @@ scanned_awb_list = []
 def home(request):
     return render(request, 'home.html')
 
-supabase = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_KEY")
-)
-
-uploaded_data_df = pd.DataFrame()
-
 def upload_file(request):
-    global uploaded_data_df
+    """
+    Supabase compatible file upload:
+    - Read CSV / Excel using pandas
+    - Upload as Excel buffer to Supabase with UNIQUE filename (timestamp prefix)
+    - Save simple file reference in DB
+    - Render uploaded data as HTML table using df.to_dict()
+    """
+    
     if request.method == 'POST' and request.FILES.get('file'):
-        file = request.FILES['file']
-        UploadedFile.objects.all().delete()  # Clear old files
+        file = request.FILES['file']              # Uploaded by user
 
-        # Read file into DataFrame without saving locally
+        # 1) Read CSV / Excel
         ext = os.path.splitext(file.name)[1].lower()
         if ext == '.csv':
             df = pd.read_csv(file)
@@ -40,27 +41,41 @@ def upload_file(request):
 
         uploaded_data_df = df.copy()
 
-        # Save Excel in-memory
-        from io import BytesIO
+        # 2) Write DF to Bytes buffer
         excel_buffer = BytesIO()
         df.to_excel(excel_buffer, index=False)
         excel_buffer.seek(0)
 
-        # Upload to Supabase storage bucket
-        bucket_name = "uploads"  # Supabase bucket name
-        file_path = f"uploaded/{file.name}"
+        # 3) Create unique file name to avoid 409 Duplicate (use timestamp)
+        import time
+        bucket_name = "uploads"
+        unique_name = f"{int(time.time())}_{file.name}"
+        file_path = f"uploaded/{unique_name}"
+
+        # 4) Upload to Supabase bucket
         supabase.storage.from_(bucket_name).upload(
             file_path,
             excel_buffer.read(),
-            {"content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+            {
+                "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
         )
 
-        # Save reference to DB
-        UploadedFile.objects.create(file_name=file.name)
+        # 5) Save file reference in DB model
+        UploadedFile.objects.create(file=file)
 
-        return render(request, 'upload.html', {'data': df.to_dict(orient='records')})
+        # 6) Return HTML table using upload.html template
+        return render(request, 'upload.html', {
+            'data': df.to_dict(orient='records'),
+            'columns': df.columns
+        })
 
-    return render(request, 'upload.html', {'data': uploaded_data_df.to_dict(orient='records')})
+    # If GET request -> show empty or last uploaded table
+    return render(request, 'upload.html', {
+        'data': uploaded_data_df.to_dict(orient='records') if not uploaded_data_df.empty else [],
+        'columns': uploaded_data_df.columns if not uploaded_data_df.empty else []
+    })
+
 
 def scan_awb(request):
     return render(request, 'scan.html')
@@ -127,22 +142,37 @@ def extract_awb_from_url(url):
             return match.group(1)
     return url.strip()
 
-def compare_data(request):
+def compare_data(request, latest_uploaded_path=None):
     try:
-        # 1. Load latest uploaded file
-        latest_file = get_latest_uploaded_file()
-        if not latest_file:
-            return HttpResponse("No file uploaded.")
+        bucket_name = "uploads"
 
-        ext = os.path.splitext(latest_file)[1]
-        if ext == '.csv':
-            df = pd.read_csv(latest_file, dtype=str, header=6)
+        if latest_uploaded_path:
+            # જો upload_file માંથી path મળ્યું છે તો એ જ file લેવી
+            latest_file_name = latest_uploaded_path
         else:
-            df = pd.read_excel(latest_file, engine='openpyxl', dtype=str, header=6)
+            # Supabase માંથી latest file fetch કરવી
+            files_list = supabase.storage.from_(bucket_name).list("uploaded")
+            if not files_list:
+                return HttpResponse("No file uploaded in Supabase.")
+            latest_file_info = sorted(files_list, key=lambda x: x['created_at'], reverse=True)[0]
+            latest_file_name = f"uploaded/{latest_file_info['name']}"
+
+        # Download file
+        file_response = supabase.storage.from_(bucket_name).download(latest_file_name)
+        if not file_response:
+            return HttpResponse("Error downloading file from Supabase.")
+
+        import io
+        file_bytes = io.BytesIO(file_response)
+        ext = os.path.splitext(latest_file_name)[1].lower()
+        if ext == '.csv':
+            df = pd.read_csv(file_bytes, dtype=str, header=6)
+        else:
+            df = pd.read_excel(file_bytes, engine='openpyxl', dtype=str, header=6)
 
         df = df.applymap(lambda x: str(x).strip())
 
-        # 2. Load scanned AWBs
+        # Load scanned AWBs
         scanned_file = os.path.join(settings.MEDIA_ROOT, 'scanned_awbs.txt')
         if not os.path.exists(scanned_file):
             return HttpResponse("No scanned AWB data found.")
@@ -155,27 +185,23 @@ def compare_data(request):
                 scanned_awbs = [awb.strip() for awb in content.strip().split('\n') if awb.strip()]
         scanned_awbs_set = set([x.strip() for x in scanned_awbs if x])
 
-        # 3. Try to find column with tracking links or AWBs
-        if 'Tracking Link' in df.columns:  # 🔸 use tracking link if available
+        # AWB extraction
+        if 'Tracking Link' in df.columns:
             df['__awb__'] = df['Tracking Link'].apply(extract_awb_from_url)
-        elif 'AWB Number' in df.columns:  # 🔸 fallback to AWB Number column
+        elif 'AWB Number' in df.columns:
             df['__awb__'] = df['AWB Number'].astype(str).str.strip()
         else:
             return HttpResponse("AWB column not found.")
 
-        # 4. Match
+        # Match
         df['Matched'] = df['__awb__'].isin(scanned_awbs_set)
-
         matched_df = df[df['Matched']].drop(columns=['Matched'])
         unmatched_df = df[~df['Matched']].drop(columns=['Matched'])
 
-        # 5. Save Excel
-        matched_path = os.path.join(settings.MEDIA_ROOT, 'matched.xlsx')
-        unmatched_path = os.path.join(settings.MEDIA_ROOT, 'unmatched.xlsx')
-        matched_df.to_excel(matched_path, index=False)
-        unmatched_df.to_excel(unmatched_path, index=False)
+        # Save local results
+        matched_df.to_excel(os.path.join(settings.MEDIA_ROOT, 'matched.xlsx'), index=False)
+        unmatched_df.to_excel(os.path.join(settings.MEDIA_ROOT, 'unmatched.xlsx'), index=False)
 
-        # 6. Store to session
         request.session['matched'] = matched_df.to_dict(orient='records')
         request.session['unmatched'] = unmatched_df.to_dict(orient='records')
 
@@ -186,8 +212,6 @@ def compare_data(request):
 
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}")
-
-
 def download_matched(request):
     matched = pd.DataFrame(request.session.get('matched', []))
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

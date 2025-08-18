@@ -19,28 +19,29 @@
         </form>
 
         {% if data %}
-            <h4 class="mt-5">📄 Uploaded Data</h4>
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover mt-3">
-                    <thead class="table-dark">
-                        <tr>
-                            {% for col in data.0.keys %}
-                                <th>{{ col }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data %}
-                            <tr>
-                                {% for value in row.values %}
-                                    <td>{{ value }}</td>
-                                {% endfor %}
-                            </tr>
+    <h4 class="mt-5">📄 Uploaded Data</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover mt-3">
+            <thead class="table-dark">
+                <tr>
+                    {% for col in columns %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                    <tr>
+                        {% for col in columns %}
+                            <td>{{ row[col] }}</td>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
     </div>
 </body>
 </html>
