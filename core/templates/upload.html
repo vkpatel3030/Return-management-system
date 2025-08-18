@@ -18,6 +18,12 @@
             <a href="{% url 'home' %}" class="btn btn-secondary ms-2">Go to Home</a>
         </form>
 
+        {% if error_msg %}
+    <div class="alert alert-danger">{{ error_msg }}</div>
+{% endif %}
+
+
+
         {% if data %}
     <h4 class="mt-5">📄 Uploaded Data</h4>
     <div class="table-responsive">
