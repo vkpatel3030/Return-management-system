@@ -18,3 +18,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# ✅ આ બે લાઈન હવે add કરવી
+from django.core.wsgi import get_wsgi_application
+app = get_wsgi_application()
