@@ -64,9 +64,17 @@ if not os.path.exists(tmp_db_path):
 
 load_dotenv() 
 # Database - SQLite only
+# Database - PostgreSQL (force psycopg2 backend)
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600
+    )
 }
+
+# 🎯 Explicitly set PostgreSQL backend
+DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -142,20 +150,3 @@ LOGGING = {
         },
     },
 }
-
-
-# ✅ Safe Supabase initialization
-from supabase import create_client, Client
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client | None = None
-
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("✅ Supabase client initialized")
-    except Exception as e:
-        print(f"⚠️ Supabase client initialization failed: {e}")
-else:
-    print("⚠️ Supabase environment variables not set. Supabase client not initialized.")

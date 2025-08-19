@@ -1,3 +1,6 @@
+{% load static %}
+{% load custom_filters %}
+
 <!DOCTYPE html>
 <html lang="gu">
 <head>
@@ -19,35 +22,36 @@
         </form>
 
         {% if error_msg %}
-    <div class="alert alert-danger">{{ error_msg }}</div>
-{% endif %}
+            <div class="alert alert-danger">{{ error_msg }}</div>
+        {% endif %}
 
-
+        {% if success_msg %}
+            <div class="alert alert-success">{{ success_msg }}</div>
+        {% endif %}
 
         {% if data %}
-    <h4 class="mt-5">📄 Uploaded Data</h4>
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover mt-3">
-            <thead class="table-dark">
-                <tr>
-                    {% for col in columns %}
-                        <th>{{ col }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in data %}
-                    <tr>
-                        {% for col in columns %}
-                            <td>{{ row[col] }}</td>
+            <h4 class="mt-5">📄 Uploaded Data</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mt-3">
+                    <thead class="table-dark">
+                        <tr>
+                            {% for col in columns %}
+                                <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                            <tr>
+                                {% for col in columns %}
+                                    <td>{{ row|get_item:col }}</td>
+                                {% endfor %}
+                            </tr>
                         {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-{% endif %}
-
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>

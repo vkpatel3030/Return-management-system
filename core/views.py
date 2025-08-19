@@ -15,35 +15,26 @@ def home(request):
 
 
 def upload_file(request):
-    if request.method == 'POST' and request.FILES.get('file'):
-        file = request.FILES['file']
-
-        # Read CSV or Excel
-        ext = os.path.splitext(file.name)[1].lower()
-        if ext == '.csv':
-            df = pd.read_csv(file)
-        else:
-            df = pd.read_excel(file, engine='openpyxl')
-
-        # Save file locally in media/uploads with unique name
-        fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'uploads'))
-        if not os.path.exists(fs.location):
-            os.makedirs(fs.location)
-
-        # ✅ Generate a unique filename to prevent duplicates
-        unique_filename = f"{uuid.uuid4()}_{file.name}"
-        fs.save(unique_filename, file)
-
-        # Save reference in DB
-        UploadedFile.objects.create(file_name=unique_filename, content=df.to_csv(index=False))
-
-        # Show table preview with success message
-        return render(request, 'upload.html', {
-            'data': df.to_dict(orient="records"),
-            'columns': df.columns,
+    if request.method == 'POST':
+        # Your file processing logic here...
+        
+        # Instead of passing raw dictionary data, convert to list format
+        processed_data = []
+        columns = ['AWB', 'Date', 'Status']  # Your actual columns
+        
+        for row in raw_data:  # raw_data is your original dictionary data
+            row_list = []
+            for col in columns:
+                row_list.append(row.get(col, ''))
+            processed_data.append(row_list)
+        
+        context = {
+            'data': processed_data,
+            'columns': columns,
             'success_msg': 'File uploaded successfully!'
-        })
-
+        }
+        return render(request, 'upload.html', context)
+    
     return render(request, 'upload.html')
 
 
