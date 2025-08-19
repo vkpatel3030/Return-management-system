@@ -6,22 +6,17 @@
       "config": {
         "maxLambdaSize": "50mb",
         "includeFiles": [
-          "static/**",
           "templates/**",
-          "return_mgm/**"
+          "core/**",
+          "media/**"
         ]
       }
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "manage.py"
     }
-  ],
-  "buildCommand": "./build_files.sh"
+  ]
 }
