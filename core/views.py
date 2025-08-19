@@ -15,29 +15,31 @@ def home(request):
 
 
 def upload_file(request):
-    if request.method == 'POST':
-        # Your file processing logic here...
-        
-        # Instead of passing raw dictionary data, convert to list format
-        processed_data = []
-        columns = ['AWB', 'Date', 'Status']  # Your actual columns
-        
-        for row in raw_data:  # raw_data is your original dictionary data
-            row_list = []
-            for col in columns:
-                row_list.append(row.get(col, ''))
-            processed_data.append(row_list)
-        
-        context = {
-            'data': processed_data,
-            'columns': columns,
+    if request.method == 'POST' and request.FILES.get('file'):
+        file = request.FILES['file']
+
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext == '.csv':
+            df = pd.read_csv(file)
+        else:
+            df = pd.read_excel(file, engine='openpyxl')
+
+        upload_path = os.path.join(settings.MEDIA_ROOT, 'uploads')
+        os.makedirs(upload_path, exist_ok=True)
+
+        unique_name = f"{uuid.uuid4()}_{file.name}"
+        full_path = os.path.join(upload_path, unique_name)
+        with open(full_path, 'wb+') as dest:
+            for chunk in file.chunks():
+                dest.write(chunk)
+
+        return render(request, 'upload.html', {
+            'data': df.to_dict(orient="records"),
+            'columns': df.columns,
             'success_msg': 'File uploaded successfully!'
-        }
-        return render(request, 'upload.html', context)
-    
+        })
+
     return render(request, 'upload.html')
-
-
 def scan_awb(request):
     return render(request, 'scan.html')
 

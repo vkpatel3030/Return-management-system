@@ -1,22 +1,26 @@
 {
   "builds": [
     {
-      "src": "app.py",
+      "src": "manage.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "50mb",
-        "includeFiles": ["staticfiles_build/**", "templates/**", "return_mgm/**"]
+        "includeFiles": [
+          "static/**",
+          "templates/**",
+          "return_mgm/**"
+        ]
       }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/staticfiles_build/static/$1"
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "app.py"
+      "dest": "manage.py"
     }
   ],
   "buildCommand": "./build_files.sh"
